@@ -90,6 +90,47 @@ class Simulator:
             agent.update_replay_memory(state, action, reward, next_state, done)
             agent.update_dqn(batch_size)
 
+    def simulate_nn(self, agent, n_iter: int, silent=False) -> object:
+        state = self._get_state()
+        for it in tqdm(range(n_iter), desc='Simulation', disable=silent):
+            action = agent.act(state)
+            # Call scenario
+            for trader in self.traders:
+                if isinstance(trader, MarketMaker) and trader.id == 1:
+                    trader.apply_behaviour(action)
+                    break
+                # if isinstance(trader, MarketMaker):
+                #     trader.apply_behaviour(action)
+
+            if self.events:
+                for event in self.events:
+                    event.call(it)
+
+            # Capture current info
+            for _ in range(len(self.info)):
+                self.info[_].capture()
+
+            # Change behaviour
+            for trader in self.traders:
+                if type(trader) == Universalist:
+                    for _ in range(len(self.info)):
+                        trader.change_strategy(self.info[_])
+                elif type(trader) == Chartist:
+                    for _ in range(len(self.info)):
+                        trader.change_sentiment(self.info[_])
+
+            # Call Traders
+            random.shuffle(self.traders)
+            for trader in self.traders:
+                trader.call()
+
+            # Payments and dividends
+            self._payments()  # pay dividends
+            for _ in range(len(self.exchanges)):  # generate next dividends
+                self.exchanges[_].generate_dividend()
+
+        return self
+
     def simulate(self, n_iter: int, silent=False) -> object:
         for it in tqdm(range(n_iter), desc='Simulation', disable=silent):
             # Call scenario
@@ -219,7 +260,7 @@ class SimulatorInfo:
 
         self.equities.append({t_id: t.equity() for t_id, t in self.traders.items()})
         self.cash.append({t_id: t.cash for t_id, t in self.traders.items()})
-        self.assets.append({t_id: t.assets for t_id, t in self.traders.items()})
+        self.assets.append({t_id: t.assets[self.exchange.id] for t_id, t in self.traders.items()})
         self.types.append({t_id: t.type for t_id, t in self.traders.items()})
         self.sentiments.append({t_id: t.sentiment for t_id, t in self.traders.items() if t.type == 'Chartist'})
         self.returns.append({tr_id: (self.equities[-1][tr_id] - self.equities[-2][tr_id]) / self.equities[-2][tr_id]

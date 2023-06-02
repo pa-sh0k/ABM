@@ -42,16 +42,20 @@ class DQNAgent:
 
         self.replay_memory = []  # Experience replay memory
 
+    def act(self, state):
+        with torch.no_grad():
+            state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(self.device)
+            q_values = self.dqn(state_tensor)
+            action = torch.argmax(q_values).item()
+            return action
+
     def choose_action(self, state):
         if np.random.uniform(0, 1) < self.exploration_rate:
             # Explore: select a random action
             action = np.random.choice(self.output_size)
         else:
             # Exploit: select the action with the highest Q-value
-            with torch.no_grad():
-                state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(self.device)
-                q_values = self.dqn(state_tensor)
-                action = torch.argmax(q_values).item()
+            action = self.act(state)
         return action
 
     def update_replay_memory(self, state, action, reward, next_state, done):
