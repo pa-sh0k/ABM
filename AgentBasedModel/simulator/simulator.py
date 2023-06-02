@@ -144,6 +144,7 @@ class SimulatorInfo:
         self.orders = list()  # order book statistics
         self.events = events
         # Agent statistics
+        self.traders_in_panic = list()  # number of MM in panic
         self.equities = list()  # agent: equity
         self.cash = list()  # agent: cash
         self.assets = list()  # agent: number of assets
@@ -216,14 +217,15 @@ class SimulatorInfo:
         })
 
         # Trader Statistics
-
+        self.traders_in_panic.append(sum(bool(t.panic) for t_id, t in self.traders.items() if t.type == 'Market Maker'))
         self.equities.append({t_id: t.equity() for t_id, t in self.traders.items()})
         self.cash.append({t_id: t.cash for t_id, t in self.traders.items()})
-        self.assets.append({t_id: t.assets for t_id, t in self.traders.items()})
+        self.assets.append({t_id: t.assets[self.exchange.id] for t_id, t in self.traders.items()})
         self.types.append({t_id: t.type for t_id, t in self.traders.items()})
         self.sentiments.append({t_id: t.sentiment for t_id, t in self.traders.items() if t.type == 'Chartist'})
-        self.returns.append({tr_id: (self.equities[-1][tr_id] - self.equities[-2][tr_id]) / self.equities[-2][tr_id]
-                             for tr_id in self.traders.keys()}) if len(self.equities) > 1 else None
+        self.returns.append({tr_id: (self.equities[-1][tr_id] - self.equities[-2][tr_id]) / self.equities[-2][tr_id] \
+            if self.equities[-2][tr_id] != 0 else 0 for tr_id in self.traders.keys()}) if len(
+            self.equities) > 1 else None
 
     def fundamental_value(self, access: int = 1) -> list:
         divs = self.dividends.copy()

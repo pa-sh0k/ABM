@@ -13,7 +13,7 @@ class ExchangeAgent:
     id = 0
 
     def __init__(self, price: float or int = 100, std: float or int = 25, volume: int = 1000, rf: float = 5e-4,
-                 transaction_cost: float = 0):
+                 is_panic: bool = False, transaction_cost: float = 0):
         """
         Creates ExchangeAgent with initialised order book and future dividends
 
@@ -30,6 +30,7 @@ class ExchangeAgent:
         self.order_book = {'bid': OrderList('bid'), 'ask': OrderList('ask')}
         self.dividend_book = list()  # act like queue
         self.risk_free = rf
+        self.panic = is_panic
         self.transaction_cost = transaction_cost
         self._fill_book(price, std, volume, rf * price)  # initialise both order book and dividend book
         logging.Logger.info(f"{self.name}")
@@ -633,7 +634,7 @@ class MarketMaker(Trader):
         self.offset_coeff = action / 100
 
     def call(self):
-        logging.Logger.info(f"Market Maker |{self.offset_coeff}| {self.id} PnL {self.cash - self.prev_cash}. Cash: {self.cash}")
+        logging.Logger.info(f"Market Maker |{self.offset_coeff}| {self.id} PnL {self.cash - self.prev_cash}. Cash: {self.cash} | Assets: {self.assets}")
         self.last_pnl = self.cash - self.prev_cash
         # Clear previous orders
         for order in self.orders.copy():
@@ -670,3 +671,30 @@ class MarketMaker(Trader):
                 self._sell_limit(ask_volume, ask_price, i)
             self.panic = False
         self.prev_cash = self.cash
+
+
+class ProbeAgent(Trader):
+    """
+    ProbeAgent issues sell orders of a specific size, without managing cash or assets.
+    """
+
+    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, order_size: int = 500):
+        super().__init__(markets, cash, assets if assets is not None else [0] * len(markets))
+        self.order_size = order_size
+        self.type = 'Probe Agent'
+        self.call_count = 0
+
+    def call(self):
+        self.call_count += 1
+
+        # Only place orders for the first 500 timestamps
+        if self.call_count <= self.order_size:
+            # Clear previous orders
+            for order in self.orders.copy():
+                self._cancel_order(order)
+
+            # For each market, place a sell order
+            for i in range(len(self.markets)):
+                spread = self.markets[i].spread()
+                sell_price = spread['ask']  # Use current ask price
+                self._sell_limit(self.order_size, sell_price, i)

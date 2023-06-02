@@ -18,21 +18,19 @@ class ConfigGenerator:
         chartists = kwargs.get("chartists", list())
         randoms = kwargs.get("randoms", list())
         fundamentalists = kwargs.get("fundamentalists", list())
+        probe_agents = kwargs.get("probe_agents", list())
         size = kwargs.get("size", 10)
         stability_threshold = kwargs.get("stability_threshold", 5)
         iterations = kwargs.get("iterations", 1)
         window = kwargs.get("window", 5)
         configs = list()
         for events in itertools.product(*[*events]):
-            for traders in itertools.product(*[*market_makers, *chartists, *randoms, *fundamentalists]):
+            for traders in itertools.product(*[*market_makers, *chartists, *randoms, *fundamentalists, *probe_agents]):
                 configs.append(
                     {
                         "exchanges": [
                             {
-                                "volume": 3000
-                            },
-                            {
-                                "volume": 3000
+                                "volume": 1000
                             }
                         ],
                         "events": list(events),
@@ -54,19 +52,17 @@ def generate_configs(**kwargs) -> Dict:
         "stock_id": 0
     }
     base_market_maker = {
-        "count": 10,
+        "count": 5,
         "type": "MarketMaker",
         "cash": 10000,
         "markets": [
-            0,
-            1
+            0
         ],
         "softlimits": [
             100,
             100
         ],
         "assets": [
-            0,
             0
         ]
     }
@@ -75,11 +71,9 @@ def generate_configs(**kwargs) -> Dict:
         "type": "Chartist",
         "cash": 1000,
         "markets": [
-            0,
-            1
+            0
         ],
         "assets": [
-            0,
             0
         ]
     }
@@ -87,7 +81,7 @@ def generate_configs(**kwargs) -> Dict:
         "count": 10,
         "type": "Random",
         "markets": [
-            1
+            0
         ],
         "cash": 1000,
         "assets": [
@@ -101,20 +95,26 @@ def generate_configs(**kwargs) -> Dict:
         "cash": 1000,
         "assets": [0]
     }
+    base_probe_agent = {
+        "count": 1,
+        "type": "ProbeAgent",
+        "markets": [0],
+        "cash": 0
+    }
     scenarios = {
         "scenario1": {
             "events": [
                 [{
                     **base_event,
                     "price_change": price_change,
-                } for price_change in [-50, -25, -5, 5, 25, 50, -50, -25, -5, 5, 25, 50, -50, -25, -5, 5, 25, 50, -50, -25, -5, 5, 25, 50, -50, -25, -5, 5, 25, 50, -50, -25, -5, 5, 25, 50]],
+                } for price_change in [-50]],
             ],
             "market_makers": [
                 [{
                     **base_market_maker,
                     "count": count,
-                # } for count in [1, 5, 10, 25, 100]]
-                } for count in [1]]
+                    # } for count in [1, 5, 10, 25, 100]]
+                } for count in [5]]
             ],
             "chartists": [
                 [{
@@ -137,6 +137,12 @@ def generate_configs(**kwargs) -> Dict:
                 # } for count in [10, 25]]
                 } for count in [10]]
             ],
+            "probe_agents": [
+                [{
+                    **base_probe_agent,
+                    "count": count
+                } for count in [1]]
+            ]
         },
     }
     generator = ConfigGenerator(scenarios=scenarios)

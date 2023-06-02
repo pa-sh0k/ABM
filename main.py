@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 
 import AgentBasedModel
@@ -5,6 +6,7 @@ import random
 
 import json
 from AgentBasedModel import plot_price_fundamental, plot_arbitrage, plot_price, plot_dividend, plot_orders, utils
+from AgentBasedModel import plot_inventories, plot_hpe_price, plot_hfts_in_panic
 from AgentBasedModel.utils import logging
 
 with open("config.json", "r", encoding="utf-8") as f:
@@ -60,11 +62,16 @@ for scenario, scenario_configs in configs.items():
 
             events_dfs.append(AgentBasedModel.utils.make_event_df(info=infos[_], config=config))
 
-            plot_price_fundamental(infos[_], save_path=f"output/plots/{config_i}_price_fundamental_{_}.png")
-            plot_arbitrage(infos[_], save_path=f"output/plots/{config_i}_arbitrage_{_}.png")
-            plot_price(infos[_], save_path=f"output/plots/{config_i}_price_{_}.png")
-            plot_dividend(infos[_], save_path=f"output/plots/{config_i}_dividend_{_}.png")
-            plot_orders(infos[_], save_path=f"output/plots/{config_i}_orders_{_}.png")
+
+            # plot_price_fundamental(infos[_], save_path=f"output/plots/{config_i}_price_fundamental_{_}.png")
+            # plot_arbitrage(infos[_], save_path=f"output/plots/{config_i}_arbitrage_{_}.png")
+            # plot_price(infos[_], save_path=f"output/plots/{config_i}_price_{_}.png")
+            # plot_dividend(infos[_], save_path=f"output/plots/{config_i}_dividend_{_}.png")
+            # plot_orders(infos[_], save_path=f"output/plots/{config_i}_orders_{_}.png")
+
+            plot_inventories(infos[_], save_path=f"output/plots/{config_i}_inventories_{_}.png")
+            plot_hpe_price(infos[_], save_path=f"output/plots/{config_i}_hpe_price_{_}.png")
+            plot_hfts_in_panic(infos[_], save_path=f"output/plots/{config_i}_hfts_panic_{_}.png")
 
     events_dfs = pd.concat(events_dfs)
     events_dfs.to_csv(f"output/scenarios/{scenario}.csv", index=False)
