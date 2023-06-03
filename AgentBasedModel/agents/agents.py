@@ -653,8 +653,9 @@ class MarketMaker(Trader):
         # If in panic state we only either sell or buy commodities
         if not total_bid_volume or not total_ask_volume:
             self.panic = True
-            self._buy_market(sum(2*self.lls[i] for i in range(len(self.markets)))) if total_ask_volume == 0 else None
-            self._sell_market((sum(self.assets))) if total_bid_volume == 0 else None
+            logging.Logger.info(f"PANIC {self.id}")
+            self._buy_market(sum(self.uls[i] for i in range(len(self.markets)))) if total_ask_volume == 0 else None
+            self._sell_market((sum(self.uls))) if total_bid_volume == 0 else None
         # elif self.cash <= 0:
         #     self.panic = True
         #     self._sell_market((sum(self.assets)))
