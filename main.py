@@ -13,7 +13,7 @@ with open("config.json", "r", encoding="utf-8") as f:
     config = json.loads(f.read())
 logging.Logger.info(f"Config: {json.dumps(config)}")
 
-configs = AgentBasedModel.utils.generate_configs(iterations=2000)
+configs = AgentBasedModel.utils.generate_configs(iterations=1000)
 with open(f"output/scenarios.json", "w", encoding="utf-8") as f:
     f.write(json.dumps(configs))
 for scenario, scenario_configs in configs.items():

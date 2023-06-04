@@ -12,7 +12,7 @@ Visualisation of Hot Potato Effect (HPE)
 """
 
 
-def plot_inventories(info: SimulatorInfo, figsize=(6, 6), save_path: str = None):
+def plot_inventories(info: SimulatorInfo, figsize=(12, 12), save_path: str = None):
     plt.figure(figsize=figsize)
     plt.title(f'HTF inventories, with compliance orders')
     plt.xlabel('Iterations')
