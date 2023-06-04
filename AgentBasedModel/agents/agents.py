@@ -206,11 +206,13 @@ class Trader:
     def _buy_limit(self, quantity, price, market_id):
         order = Order(round(price, 1), round(quantity), 'bid', market_id, self)
         self.orders.append(order)
+        logging.Logger.info(f"{self.name} BUY LIMIT | qty: {quantity} | price: {price}")
         self.markets[market_id].limit_order(order)
 
     def _sell_limit(self, quantity, price, market_id):
         order = Order(round(price, 1), round(quantity), 'ask', market_id, self)
         self.orders.append(order)
+        logging.Logger.info(f"{self.name} SELL LIMIT | qty: {quantity} | price: {price}")
         self.markets[market_id].limit_order(order)
 
     def _buy_market(self, quantity, market: Optional[int] = None) -> int:
@@ -264,7 +266,7 @@ class Random(Trader):
     """
 
     def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int]):
-        super().__init__(markets, cash, assets)
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
         self.type = 'Random'
 
     @staticmethod
@@ -355,7 +357,7 @@ class Fundamentalist(Trader):
         :param assets: number of assets
         :param access: number of future dividends informed
         """
-        super().__init__(markets, cash, assets)
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
         self.type = 'Fundamentalist'
         self.access = access
 
@@ -448,7 +450,7 @@ class Chartist(Trader):
         :param cash: number of cash
         :param assets: number of assets
         """
-        super().__init__(markets, cash, assets)
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
         self.type = 'Chartist'
         self.sentiment = 'Optimistic' if random.random() > .5 else 'Pessimistic'
 
@@ -543,7 +545,7 @@ class Universalist(Fundamentalist, Chartist):
         :param assets: number of assets
         :param access: number of future dividends informed
         """
-        super().__init__(markets, cash, assets)
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
         self.type = 'Chartist' if random.random() > .5 else 'Fundamentalist'  # randomly decide type
         self.sentiment = 'Optimistic' if random.random() > .5 else 'Pessimistic'  # sentiment about trend (Chartist)
         self.access = access  # next n dividend payments known (Fundamentalist)
@@ -618,7 +620,7 @@ class MarketMaker(Trader):
     """
 
     def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, softlimits: List[int] = None, stub_quotes_enabled: bool = False, stub_size: int = 1):
-        super().__init__(markets, cash, assets if assets is not None else [0] * len(markets))
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
         if softlimits is None:
             self.softlimits = [100] * len(self.markets)
         self.softlimits = softlimits
@@ -671,8 +673,8 @@ class MarketMaker(Trader):
 
                 if self.stub_quotes_enabled:
                     market_price = (spread['ask'] - spread['bid']) / 2
-                    stub_bid_price = market_price * 0.2
-                    stub_ask_price = market_price * 5
+                    stub_bid_price = market_price * 0.1
+                    stub_ask_price = market_price * 10
                     self._buy_limit(self.stub_size, stub_bid_price, i)
                     self._sell_limit(self.stub_size, stub_ask_price, i)
 
@@ -691,8 +693,8 @@ class ProbeAgent(Trader):
     ProbeAgent issues sell orders of a specific size, without managing cash or assets.
     """
 
-    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, order_size: int = 11):
-        super().__init__(markets, cash, assets if assets is not None else [0] * len(markets))
+    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, order_size: int = 19):
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
         self.order_size = order_size
         self.type = 'Probe Agent'
         self.call_count = 0
@@ -702,14 +704,7 @@ class ProbeAgent(Trader):
 
         # Only place orders for the first 500 timestamps
         if self.call_count <= 500:
-            # Clear previous orders
-            # for order in self.orders.copy():
-            #     self._cancel_order(order)
-
             # For each market, place a sell order
             for i in range(len(self.markets)):
-                # spread = self.markets[i].spread()
-                # sell_price = spread['ask']  # Use current ask price
-                # self._sell_limit(self.order_size, sell_price, i)
                 logging.Logger.info("I AM PROBE")
                 self._sell_market(self.order_size, i)
