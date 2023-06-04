@@ -618,7 +618,7 @@ class MarketMaker(Trader):
     """
 
     def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, softlimits: List[int] = None):
-        super().__init__(markets, cash, assets if assets is not None else [0] * len(markets))
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
         if softlimits is None:
             self.softlimits = [100] * len(self.markets)
         self.softlimits = softlimits

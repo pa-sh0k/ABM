@@ -113,7 +113,7 @@ def generate_configs(**kwargs) -> Dict:
                     **base_market_maker,
                     "count": count,
                     # } for count in [1, 5, 10, 25, 100]]
-                } for count in [1]]
+                } for count in [5]]
             ],
             "chartists": [
                 [{
