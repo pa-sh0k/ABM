@@ -29,7 +29,7 @@ class ConfigGenerator:
                     {
                         "exchanges": [
                             {
-                                "volume": 3000
+                                "volume": 1000
                             }
                         ],
                         "events": list(events),
@@ -93,42 +93,53 @@ def generate_configs(**kwargs) -> Dict:
         "cash": 1000,
         "assets": [0]
     }
+    base_probe_agent = {
+        "count": 1,
+        "type": "Probe Agent",
+        "markets": [0]
+    }
     scenarios = {
         "scenario1": {
             "events": [
                 [{
                     **base_event,
                     "price_change": price_change,
-                } for price_change in [-50, -50, -50, -50, -50, -50, -50, -50, -50, -50]],
+                } for price_change in [-50]],
             ],
             "market_makers": [
                 [{
                     **base_market_maker,
                     "count": count,
-                # } for count in [1, 5, 10, 25, 100]]
-                } for count in [5]]
+                    # } for count in [1, 5, 10, 25, 100]]
+                } for count in [1]]
             ],
             "chartists": [
                 [{
                     **base_chartist,
                     "count": count,
-                # } for count in [5, 10, 25]]
+                    # } for count in [5, 10, 25]]
                 } for count in [5]]
             ],
             "randoms": [
                 [{
                     **base_random,
                     "count": count,
-                # } for count in [20, 50]]
+                    # } for count in [20, 50]]
                 } for count in [20]]
             ],
             "fundamentalists": [
                 [{
                     **base_fundamentalist,
                     "count": count,
-                # } for count in [10, 25]]
+                    # } for count in [10, 25]]
                 } for count in [10]]
             ],
+            "probe_agents": [
+                [{
+                    **base_probe_agent,
+                    "count": count,
+                }] for count in [1]
+            ]
         },
     }
     generator = ConfigGenerator(scenarios=scenarios)
