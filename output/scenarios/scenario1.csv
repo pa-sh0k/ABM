@@ -1,2 +1,2 @@
 type,it,price_change,stock_id,random,market_maker,chartist,fundamentalist,is_recovered,time_to_recover,before_price,after_price,before_return,after_return
-MarketPriceShock,200,-50,0,20,1,5,10,True,1225,104.76000000000002,96.98,-6.765406844990834e-05,0.001433584095999692
+MarketPriceShock,200,-50,0,20,1,5,10,True,155,88.28,32.14,-0.0003641530633940444,0.0007302870440019177
