@@ -63,7 +63,9 @@ def generate_configs(**kwargs) -> Dict:
         ],
         "assets": [
             0
-        ]
+        ],
+        "stub_quotes_enabled": False,
+        "stub_size": 1
     }
     base_chartist = {
         "count": 10,
@@ -98,7 +100,8 @@ def generate_configs(**kwargs) -> Dict:
         "count": 1,
         "type": "ProbeAgent",
         "markets": [0],
-        "cash": 0,
+        "cash": 10000,
+        "assets": [0]
     }
     scenarios = {
         "scenario1": {

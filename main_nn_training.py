@@ -8,19 +8,19 @@ from AgentBasedModel.agents import DQNAgent, MarketMaker
 from AgentBasedModel import plot_price_fundamental, plot_arbitrage, plot_price, plot_dividend, plot_orders, utils
 from AgentBasedModel.utils import logging
 
-input_size = 5
-output_size = 128
+input_size = 6
+output_size = 100
 hidden_size = 128
 batch_size = 32
 target_network_update_freq = 3
-learning_rate, discount_factor, exploration_rate = 0.01, 0.8, 0.99
+learning_rate, discount_factor, exploration_rate = 0.01, 0.85, 0.99
 agent = DQNAgent(input_size, output_size, hidden_size, learning_rate, discount_factor, exploration_rate)
 
-configs = AgentBasedModel.utils.generate_configs(iterations=2000)
+configs = AgentBasedModel.utils.generate_configs(iterations=1000)
 
-# agent.load_model("model_checkpoint.pth")
+agent.load_model("model_checkpoint.pth")
 
-new_learning_rate, new_discount_factor, new_exploration_rate = 0.01, 0.8, 0.99
+new_learning_rate, new_discount_factor, new_exploration_rate = 0.005, 0.8, 0.91
 
 for param_group in agent.optimizer.param_groups:
     param_group['lr'] = new_learning_rate
@@ -65,10 +65,10 @@ for scenario, scenario_configs in configs.items():
             'traders': traders,
             'events': events,
         })
-        try:
-            simulator.train_nn(batch_size, agent, config["iterations"])
-        except:
-            continue
+        # try:
+        simulator.train_nn(batch_size, agent, config["iterations"])
+        # except:
+        #     continue
         infos = simulator.info
 
         if counter % target_network_update_freq == 0:
@@ -80,7 +80,7 @@ for scenario, scenario_configs in configs.items():
         logging.Logger.info(f"EPISODE {counter} FINISHED")
         agent.save_model('model_checkpoint.pth')
         logging.Logger.info(f"MODEL SAVED")
-        time.sleep(3)
+        time.sleep(5)
 
         new_exploration_rate *= 0.999
         agent.exploration_rate = new_exploration_rate

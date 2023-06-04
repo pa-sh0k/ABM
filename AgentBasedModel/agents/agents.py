@@ -619,6 +619,7 @@ class MarketMaker(Trader):
 
     def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, softlimits: List[int] = None):
         super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
+
         if softlimits is None:
             self.softlimits = [100] * len(self.markets)
         self.softlimits = softlimits
@@ -629,6 +630,8 @@ class MarketMaker(Trader):
         self.offset_coeff = 1
         self.last_pnl = 0
         self.prev_cash = cash
+        self.stub_quotes_enabled = stub_quotes_enabled
+        self.stub_size = stub_size
 
     def apply_behaviour(self, action) -> None:
         self.offset_coeff = action / 100
@@ -656,20 +659,30 @@ class MarketMaker(Trader):
             logging.Logger.info(f"PANIC {self.id}")
             self._buy_market(sum(self.uls[i] for i in range(len(self.markets)))) if total_ask_volume == 0 else None
             self._sell_market((sum(self.uls))) if total_bid_volume == 0 else None
-        # elif self.cash <= 0:
-        #     self.panic = True
-        #     self._sell_market((sum(self.assets)))
         else:
             # Calculate spread and price offset for each market
             for i in range(len(self.markets)):
                 spread = self.markets[i].spread()
                 base_offset = self.offset_coeff * min(1, (spread['ask'] - spread['bid']) * (self.assets[i] / self.lls[i]))
-                bid_volume = max(0, (self.uls[i] - 1 - self.assets[i]))
-                ask_volume = max(0, (self.assets[i] - 1 - self.lls[i]))
                 bid_price = spread['bid'] + base_offset
                 ask_price = spread['ask'] - base_offset
+
+                bid_volume = max(0, (self.uls[i] - 1 - self.assets[i]))
+                ask_volume = max(0, (self.assets[i] - 1 - self.lls[i]))
+
+                if self.stub_quotes_enabled:
+                    market_price = (spread['ask'] - spread['bid']) / 2
+                    stub_bid_price = market_price * 0.2
+                    stub_ask_price = market_price * 5
+                    self._buy_limit(self.stub_size, stub_bid_price, i)
+                    self._sell_limit(self.stub_size, stub_ask_price, i)
+
+                    bid_volume = max(0, bid_volume-self.stub_size)
+                    ask_volume = max(0, ask_volume-self.stub_size)
+
                 self._buy_limit(bid_volume, bid_price, i)
                 self._sell_limit(ask_volume, ask_price, i)
+
             self.panic = False
         self.prev_cash = self.cash
 
@@ -679,7 +692,7 @@ class ProbeAgent(Trader):
     ProbeAgent issues sell orders of a specific size, without managing cash or assets.
     """
 
-    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, order_size: int = 500):
+    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, order_size: int = 11):
         super().__init__(markets, cash, assets if assets is not None else [0] * len(markets))
         self.order_size = order_size
         self.type = 'Probe Agent'
@@ -689,13 +702,15 @@ class ProbeAgent(Trader):
         self.call_count += 1
 
         # Only place orders for the first 500 timestamps
-        if self.call_count <= self.order_size:
+        if self.call_count <= 500:
             # Clear previous orders
-            for order in self.orders.copy():
-                self._cancel_order(order)
+            # for order in self.orders.copy():
+            #     self._cancel_order(order)
 
             # For each market, place a sell order
             for i in range(len(self.markets)):
-                spread = self.markets[i].spread()
-                sell_price = spread['ask']  # Use current ask price
-                self._sell_limit(self.order_size, sell_price, i)
+                # spread = self.markets[i].spread()
+                # sell_price = spread['ask']  # Use current ask price
+                # self._sell_limit(self.order_size, sell_price, i)
+                logging.Logger.info("I AM PROBE")
+                self._sell_market(self.order_size, i)
