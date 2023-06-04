@@ -21,7 +21,7 @@ def main():
     plots = input("Remove plots [y/n]: ")
 
     if logs == 'y': print(f'\033[92m{remove_logs()} successfully removed\033[0m')
-    if plots == 'y': print(f'\033[92m{remove_plots()} successfully\033[0m')
+    if plots == 'y': print(f'\033[92m{remove_plots()} successfully removed\033[0m')
 
 
 if __name__ == '__main__':

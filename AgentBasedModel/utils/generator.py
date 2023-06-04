@@ -18,18 +18,19 @@ class ConfigGenerator:
         chartists = kwargs.get("chartists", list())
         randoms = kwargs.get("randoms", list())
         fundamentalists = kwargs.get("fundamentalists", list())
+        probe_agents = kwargs.get("probe_agents", list())
         size = kwargs.get("size", 10)
         stability_threshold = kwargs.get("stability_threshold", 5)
         iterations = kwargs.get("iterations", 1)
         window = kwargs.get("window", 5)
         configs = list()
         for events in itertools.product(*[*events]):
-            for traders in itertools.product(*[*market_makers, *chartists, *randoms, *fundamentalists]):
+            for traders in itertools.product(*[*market_makers, *chartists, *randoms, *fundamentalists, *probe_agents]):
                 configs.append(
                     {
                         "exchanges": [
                             {
-                                "volume": 3000
+                                "volume": 1000
                             }
                         ],
                         "events": list(events),
@@ -62,7 +63,9 @@ def generate_configs(**kwargs) -> Dict:
         ],
         "assets": [
             0
-        ]
+        ],
+        "stub_quotes_enabled": False,
+        "stub_size": 1
     }
     base_chartist = {
         "count": 10,
@@ -93,13 +96,20 @@ def generate_configs(**kwargs) -> Dict:
         "cash": 1000,
         "assets": [0]
     }
+    base_probe_agent = {
+        "count": 1,
+        "type": "ProbeAgent",
+        "markets": [0],
+        "cash": 10000,
+        "assets": [0]
+    }
     scenarios = {
         "scenario1": {
             "events": [
                 [{
                     **base_event,
                     "price_change": price_change,
-                } for price_change in [-50, -50, -50, -50, -50, -50, -50, -50, -50, -50]],
+                } for price_change in [-50]],
             ],
             "market_makers": [
                 [{
@@ -128,6 +138,13 @@ def generate_configs(**kwargs) -> Dict:
                     "count": count,
                 # } for count in [10, 25]]
                 } for count in [10]]
+            ],
+            "probe_agents": [
+                [{
+                    **base_probe_agent,
+                    "count": count,
+                    # } for count in [10, 25]]
+                } for count in [0]]
             ],
         },
     }

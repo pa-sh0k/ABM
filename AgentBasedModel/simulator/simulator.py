@@ -1,8 +1,10 @@
+import logging
 from typing import List, Dict
 
 import AgentBasedModel
 from AgentBasedModel.agents import *
 from AgentBasedModel.utils.math import mean, std, difference, rolling
+from AgentBasedModel.utils import logging
 import random
 from tqdm import tqdm
 
@@ -34,21 +36,26 @@ class Simulator:
                 # Interest payment
                 trader.cash += trader.cash * self.exchanges[_].risk_free  # allow risk-free loan
 
-    def _get_state(self):
+    def _get_state(self, mm: MarketMaker):
         res = []
         for market in self.exchanges: res += market.training_data()
+        res.append(mm.cash)
+        res.append(mm.assets[0])
         return res
 
     def train_nn(self, batch_size, agent, n_iter: int, silent=True, shuffle=True) -> object:
         done = False
-        state = self._get_state()
-        for it in tqdm(range(n_iter), desc='Simulation', disable=silent):
+        state = [0, 0, 0, 0, 0, 0]
 
-            action = agent.choose_action(state)
+        for it in tqdm(range(n_iter), desc='Simulation', disable=silent):
+            acts = {k: [] for k in range(5)}
 
             for trader in self.traders:
                 if isinstance(trader, MarketMaker):
+                    state = self._get_state(trader)
+                    action = agent.choose_action(state)
                     trader.apply_behaviour(action)
+                    acts[trader.id] = [state, action]
 
             if self.events:
                 for event in self.events:
@@ -77,30 +84,25 @@ class Simulator:
             for _ in range(len(self.exchanges)):  # generate next dividends
                 self.exchanges[_].generate_dividend()
 
-            next_state = self._get_state()
-
-            reward = 0
-            count_mms = 0
             for trader in self.traders:
                 if isinstance(trader, MarketMaker):
-                    reward += trader.last_pnl
-                    count_mms += 1
-
-            reward /= count_mms
-            agent.update_replay_memory(state, action, reward, next_state, done)
-            agent.update_dqn(batch_size)
+                    reward = trader.last_pnl
+                    if trader.cash < 0: reward *= 0.5
+                    state, action, = acts[trader.id][0], acts[trader.id][1]
+                    next_state = self._get_state(trader)
+                    agent.update_replay_memory(state, action, reward, next_state, done)
+                    agent.update_dqn(batch_size)
 
     def simulate_nn(self, agent, n_iter: int, silent=False) -> object:
-        state = self._get_state()
         for it in tqdm(range(n_iter), desc='Simulation', disable=silent):
-            action = agent.act(state)
-            # Call scenario
+            acts = {k: [] for k in range(5)}
+
             for trader in self.traders:
-                if isinstance(trader, MarketMaker) and trader.id == 1:
+                if isinstance(trader, MarketMaker):
+                    state = self._get_state(trader)
+                    action = agent.choose_action(state)
                     trader.apply_behaviour(action)
-                    break
-                # if isinstance(trader, MarketMaker):
-                #     trader.apply_behaviour(action)
+                    acts[trader.id] = [state, action]
 
             if self.events:
                 for event in self.events:
@@ -128,6 +130,12 @@ class Simulator:
             self._payments()  # pay dividends
             for _ in range(len(self.exchanges)):  # generate next dividends
                 self.exchanges[_].generate_dividend()
+
+            mm_assets = []
+            for trader in self.traders:
+                if isinstance(trader, MarketMaker):
+                    mm_assets.append(trader.assets[0])
+            logging.Logger.info(f"MMASSETS {mm_assets}")
 
         return self
 
@@ -161,6 +169,11 @@ class Simulator:
             for _ in range(len(self.exchanges)):  # generate next dividends
                 self.exchanges[_].generate_dividend()
 
+            mm_assets = []
+            for trader in self.traders:
+                if isinstance(trader, MarketMaker):
+                    mm_assets.append(trader.assets[0])
+            logging.Logger.info(f"MMASSETS {mm_assets}")
         return self
 
 
