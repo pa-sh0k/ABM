@@ -115,37 +115,36 @@ def generate_configs(**kwargs) -> Dict:
                 [{
                     **base_market_maker,
                     "count": count,
-                # } for count in [1, 5, 10, 25, 100]]
+                    # } for count in [1, 5, 10, 25, 100]]
                 } for count in [5]]
             ],
             "chartists": [
                 [{
                     **base_chartist,
                     "count": count,
-                # } for count in [5, 10, 25]]
+                    # } for count in [5, 10, 25]]
                 } for count in [5]]
             ],
             "randoms": [
                 [{
                     **base_random,
                     "count": count,
-                # } for count in [20, 50]]
+                    # } for count in [20, 50]]
                 } for count in [20]]
             ],
             "fundamentalists": [
                 [{
                     **base_fundamentalist,
                     "count": count,
-                # } for count in [10, 25]]
+                    # } for count in [10, 25]]
                 } for count in [10]]
             ],
             "probe_agents": [
                 [{
                     **base_probe_agent,
                     "count": count,
-                    # } for count in [10, 25]]
-                } for count in [0]]
-            ],
+                }] for count in [1]
+            ]
         },
     }
     generator = ConfigGenerator(scenarios=scenarios)

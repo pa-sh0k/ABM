@@ -68,6 +68,8 @@ performance and market condition.
 trying to gain on the spread between bid and ask prices, and maintains
 its assets to cash ratio in balance.
 
+**Probe Agent** - issues sell orders of a specific size, without managing cash or assets.
+
 ## Project Structure
 
 - !**agents** - all Traders + ExchangeAgent definitions

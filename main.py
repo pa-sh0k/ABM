@@ -62,7 +62,6 @@ for scenario, scenario_configs in configs.items():
 
             events_dfs.append(AgentBasedModel.utils.make_event_df(info=infos[_], config=config))
 
-
             # plot_price_fundamental(infos[_], save_path=f"output/plots/{config_i}_price_fundamental_{_}.png")
             # plot_arbitrage(infos[_], save_path=f"output/plots/{config_i}_arbitrage_{_}.png")
             # plot_price(infos[_], save_path=f"output/plots/{config_i}_price_{_}.png")
@@ -75,4 +74,3 @@ for scenario, scenario_configs in configs.items():
 
     events_dfs = pd.concat(events_dfs)
     events_dfs.to_csv(f"output/scenarios/{scenario}.csv", index=False)
-
