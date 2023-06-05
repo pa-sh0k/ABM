@@ -19,6 +19,9 @@ with open(f"output/scenarios.json", "w", encoding="utf-8") as f:
 for scenario, scenario_configs in configs.items():
     AgentBasedModel.utils.logging.Logger.error(f"Scenario: {scenario}. Configs: [{len(scenario_configs)}]")
     events_dfs = []
+    delay_enabled = False
+    delay = 1
+
     for config_i, config in enumerate(scenario_configs):
         AgentBasedModel.ExchangeAgent.id = 0
         AgentBasedModel.Trader.id = 0
@@ -30,6 +33,10 @@ for scenario, scenario_configs in configs.items():
         for exchange in config["exchanges"]:
             exchanges.append(AgentBasedModel.ExchangeAgent(**exchange))
         for trader in config["traders"]:
+            if trader["type"] == "MarketMaker":
+                delay_enabled = trader["delay_enabled"]
+                delay = trader["delay"]
+
             params = dict(**trader)
             params.pop("type")
             params.pop("count")
@@ -68,9 +75,12 @@ for scenario, scenario_configs in configs.items():
             # plot_dividend(infos[_], save_path=f"output/plots/{config_i}_dividend_{_}.png")
             # plot_orders(infos[_], save_path=f"output/plots/{config_i}_orders_{_}.png")
 
-            plot_inventories(infos[_], save_path=f"output/plots/{config_i}_inventories_{_}.png")
-            plot_hpe_price(infos[_], save_path=f"output/plots/{config_i}_hpe_price_{_}.png")
-            plot_hfts_in_panic(infos[_], save_path=f"output/plots/{config_i}_hfts_panic_{_}.png")
+            plot_inventories(infos[_], save_path=f"output/plots/{config_i}_inventories_{_}.png",
+                             delay_enabled=delay_enabled, delay=delay)
+            plot_hpe_price(infos[_], save_path=f"output/plots/{config_i}_hpe_price_{_}.png",
+                           delay_enabled=delay_enabled, delay=delay)
+            plot_hfts_in_panic(infos[_], save_path=f"output/plots/{config_i}_hfts_panic_{_}.png",
+                               delay_enabled=delay_enabled, delay=delay)
 
     events_dfs = pd.concat(events_dfs)
     events_dfs.to_csv(f"output/scenarios/{scenario}.csv", index=False)

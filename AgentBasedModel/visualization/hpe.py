@@ -3,7 +3,6 @@ import AgentBasedModel.utils.math as math
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-
 """
 Visualisation of Hot Potato Effect (HPE)
 1 chart: Shows HFT inventories during timeline with a given delay
@@ -12,10 +11,10 @@ Visualisation of Hot Potato Effect (HPE)
 """
 
 
-
-def plot_inventories(info: SimulatorInfo, figsize=(25, 6), save_path: str = None):
+def plot_inventories(info: SimulatorInfo, figsize=(25, 6), save_path: str = None, delay_enabled: bool = False,
+                     delay: int = 1):
     plt.figure(figsize=figsize)
-    plt.title(f'HTF inventories, with compliance orders')
+    plt.title(f'HTF inventories, {f"Delay={delay}" if delay_enabled else "with compliance orders"}')
     plt.xlabel('Iterations')
     plt.ylabel('Inventories')
     plt.xticks([i for i in range(1, 1000, 20)])
@@ -32,9 +31,10 @@ def plot_inventories(info: SimulatorInfo, figsize=(25, 6), save_path: str = None
     plt.savefig(save_path) if save_path else plt.show()
 
 
-def plot_hpe_price(info: SimulatorInfo, spread=False, rolling: int = 1, figsize=(15, 6), save_path: str = None):
+def plot_hpe_price(info: SimulatorInfo, spread=False, rolling: int = 1, figsize=(15, 6), save_path: str = None,
+                   delay_enabled: bool = False, delay: int = 1):
     plt.figure(figsize=figsize)
-    plt.title(f'Last traded price, with compliance orders')
+    plt.title(f'Last traded price, {f"Delay={delay}" if delay_enabled else "with compliance orders"}')
     plt.xlabel('Iterations')
     plt.ylabel('Price')
     plt.xticks([i for i in range(1, 1000, 39)])
@@ -50,16 +50,13 @@ def plot_hpe_price(info: SimulatorInfo, spread=False, rolling: int = 1, figsize=
     plt.savefig(save_path) if save_path else plt.show()
 
 
-def plot_hfts_in_panic(info: SimulatorInfo, rolling: int = 1, figsize=(20, 6), save_path: str = None):
+def plot_hfts_in_panic(info: SimulatorInfo, rolling: int = 1, figsize=(20, 6), save_path: str = None,
+                       delay_enabled: bool = False, delay: int = 1):
     plt.figure(figsize=figsize)
-    plt.title(f'HTFs in panic, with stub quotes')
+    plt.title(f'HTFs in panic, {f"Delay={delay}" if delay_enabled else "with stub quotes"}')
     plt.xlabel('Iterations')
     plt.ylabel('HFTs in panic')
     plt.xticks([i for i in range(1, 1000, 20)])
 
     plt.plot(range(rolling - 1, len(info.prices)), info.traders_in_panic, color='black')
     plt.savefig(save_path) if save_path else plt.show()
-
-
-if __name__ == '__main__':
-    plot_hfts_in_panic()

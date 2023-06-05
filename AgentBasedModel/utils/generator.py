@@ -30,7 +30,7 @@ class ConfigGenerator:
                     {
                         "exchanges": [
                             {
-                                "volume": 1000
+                                "volume": 2000
                             }
                         ],
                         "events": list(events),
@@ -48,7 +48,7 @@ def generate_configs(**kwargs) -> Dict:
     base_event = {
         "type": "MarketPriceShock",
         "it": 200,
-        "price_change": -50,
+        "price_change": 0,
         "stock_id": 0
     }
     base_market_maker = {
@@ -65,12 +65,14 @@ def generate_configs(**kwargs) -> Dict:
             0
         ],
         "stub_quotes_enabled": False,
-        "stub_size": 1
+        "stub_size": 1,
+        "delay_enabled": True,
+        "delay": 1
     }
     base_chartist = {
         "count": 10,
         "type": "Chartist",
-        "cash": 1000,
+        "cash": 10000,
         "markets": [
             0
         ],
@@ -84,7 +86,7 @@ def generate_configs(**kwargs) -> Dict:
         "markets": [
             0
         ],
-        "cash": 1000,
+        "cash": 10000,
         "assets": [
             0
         ]
@@ -93,7 +95,7 @@ def generate_configs(**kwargs) -> Dict:
         "count": 10,
         "type": "Fundamentalist",
         "markets": [0],
-        "cash": 1000,
+        "cash": 10000,
         "assets": [0]
     }
     base_probe_agent = {
@@ -109,7 +111,7 @@ def generate_configs(**kwargs) -> Dict:
                 [{
                     **base_event,
                     "price_change": price_change,
-                } for price_change in [-50]],
+                } for price_change in [0]],
             ],
             "market_makers": [
                 [{
