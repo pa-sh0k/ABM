@@ -5,7 +5,7 @@ import random
 from AgentBasedModel.agents import DQNAgent, MarketMaker
 import json
 from AgentBasedModel import plot_price_fundamental, plot_arbitrage, plot_price, plot_dividend, plot_orders, utils
-from AgentBasedModel import plot_inventories, plot_hpe_price, plot_hfts_in_panic
+from AgentBasedModel import plot_inventories, plot_hpe_price, plot_hfts_in_panic, plot_cash, plot_and_save_cash_avg, plot_cash_avg_from_files
 from AgentBasedModel.utils import logging
 
 with open("config.json", "r", encoding="utf-8") as f:
@@ -76,7 +76,10 @@ for scenario, scenario_configs in configs.items():
             plot_inventories(infos[_], save_path=f"output/plots/{config_i}_inventories_{_}.png")
             plot_hpe_price(infos[_], save_path=f"output/plots/{config_i}_hpe_price_{_}.png")
             plot_hfts_in_panic(infos[_], save_path=f"output/plots/{config_i}_hfts_panic_{_}.png")
+            plot_cash(infos[_], save_path=f"output/plots/{config_i}_hfts_cash_{_}.png")
+            # plot_and_save_cash_avg(infos[_], save_path=f"output/plots/{config_i}_hfts_cash_avg_{_}.png")
 
     events_dfs = pd.concat(events_dfs)
     events_dfs.to_csv(f"output/scenarios/{scenario}.csv", index=False)
 
+# plot_cash_avg_from_files("nn_mm.json", "base_mm.json", save_path=f"output/plots/hfts_cash_avg.png")

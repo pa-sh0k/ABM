@@ -20,7 +20,7 @@ configs = AgentBasedModel.utils.generate_configs(iterations=1000)
 
 agent.load_model("model_checkpoint.pth")
 
-new_learning_rate, new_discount_factor, new_exploration_rate = 0.005, 0.8, 0.91
+new_learning_rate, new_discount_factor, new_exploration_rate = 0.005, 0.8, 0.99
 
 for param_group in agent.optimizer.param_groups:
     param_group['lr'] = new_learning_rate
@@ -65,10 +65,7 @@ for scenario, scenario_configs in configs.items():
             'traders': traders,
             'events': events,
         })
-        # try:
         simulator.train_nn(batch_size, agent, config["iterations"])
-        # except:
-        #     continue
         infos = simulator.info
 
         if counter % target_network_update_freq == 0:
