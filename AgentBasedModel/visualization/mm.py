@@ -10,7 +10,7 @@ Visualisation for the Cash size of MMs
 
 def plot_cash(info: SimulatorInfo, figsize=(25, 6), save_path: str = None):
     plt.figure(figsize=figsize)
-    plt.title(f'HTF cash')
+    plt.title(f'HTF equity avg')
     plt.xlabel('Iterations')
     plt.ylabel('Cash')
     plt.xticks([i for i in range(1, 1000, 20)])
@@ -27,31 +27,35 @@ def plot_cash(info: SimulatorInfo, figsize=(25, 6), save_path: str = None):
     plt.savefig(save_path) if save_path else plt.show()
 
 
-def plot_and_save_cash_avg(info: SimulatorInfo, figsize=(25, 6), save_path: str = None):
+def plot_and_save_equity_avg(info: SimulatorInfo, figsize=(12, 6), save_path: str = None):
     plt.figure(figsize=figsize)
-    plt.title(f'HTF cash')
+    plt.title(f'HTF equity avg')
     plt.xlabel('Iterations')
-    plt.ylabel('Cash')
-    plt.xticks([i for i in range(1, 1000, 20)])
+    plt.ylabel('Equity')
+    plt.xticks([i for i in range(1, 1000, 50)])
 
     cash_through_sim = defaultdict(list)
-    for asset in info.cash:
+    for asset in info.equities:
         for k, v in asset.items():
             if k in range(0, 10): cash_through_sim[k].append(v)
 
-    average = [sum([cash_through_sim[j][i] / 5 for j in range(5)]) for i in range(len(cash_through_sim[0]))]
-    with open('base_mm.json', 'w') as f:
-        f.write(json.dumps(average))
-    plt.plot(range(len(average)), average, label=f'HFT_base_avg')
+    average_nn = [sum([cash_through_sim[j][i] / 5 for j in range(5)]) for i in range(len(cash_through_sim[0]))]
+    average_base = [sum([cash_through_sim[j][i] / 5 for j in range(5, 10)]) for i in range(len(cash_through_sim[0]))]
+    with open('average_nn_eq.json', 'w') as f:
+        f.write(json.dumps(average_nn))
+    with open('average_base_eq.json', 'w') as f:
+        f.write(json.dumps(average_base))
+    plt.plot(range(len(average_base)), average_base, label=f'HFT_base_avg')
+    plt.plot(range(len(average_nn)), average_nn, label=f'HFT_nn_avg')
     plt.legend(loc="upper right")
     plt.savefig(save_path) if save_path else plt.show()
 
 
-def plot_cash_avg_from_files(file_nn: str, file_base: str, figsize=(25, 6), save_path: str = None):
+def plot_equity_avg_from_files(file_nn: str, file_base: str, figsize=(25, 6), save_path: str = None):
     plt.figure(figsize=figsize)
     plt.title(f'HTF cash')
     plt.xlabel('Iterations')
-    plt.ylabel('Cash')
+    plt.ylabel('Equity')
     plt.xticks([i for i in range(1, 1000, 20)])
 
     with open(file_nn, 'r') as f:

@@ -141,25 +141,25 @@ def generate_configs(**kwargs) -> Dict:
                 [{
                     **nn_market_maker,
                     "count": count,
-                } for count in [0]]
+                } for count in [5]]
             ],
             "chartists": [
                 [{
                     **base_chartist,
                     "count": count,
-                } for count in [5]]
+                } for count in [25]]
             ],
             "randoms": [
                 [{
                     **base_random,
                     "count": count,
-                } for count in [15]]
+                } for count in [25]]
             ],
             "fundamentalists": [
                 [{
                     **base_fundamentalist,
                     "count": count,
-                } for count in [6]]
+                } for count in [16]]
             ],
             "probe_agents": [
                 [{

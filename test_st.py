@@ -1,10 +1,10 @@
 import json
 from math import sqrt
 
-with open("base_mm.json", "r") as f:
+with open("average_base_eq.json", "r") as f:
     base_mm = json.loads(f.read())
 
-with open("nn_mm.json", "r") as f:
+with open("average_nn_eq.json", "r") as f:
     nn_mm = json.loads(f.read())
 
 N = len(nn_mm)
