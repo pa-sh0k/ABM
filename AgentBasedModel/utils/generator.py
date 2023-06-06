@@ -124,51 +124,7 @@ def generate_configs(**kwargs) -> Dict:
         "assets": [0]
     }
     scenarios = {
-        "no_nn": {
-            "events": [
-                [{
-                    **base_event,
-                    "price_change": price_change,
-                } for price_change in [0]],
-            ],
-            "base_market_makers": [
-                [{
-                    **base_market_maker,
-                    "count": count,
-                } for count in [5]]
-            ],
-            "nn_market_makers": [
-                [{
-                    **nn_market_maker,
-                    "count": count,
-                } for count in [5]]
-            ],
-            "chartists": [
-                [{
-                    **base_chartist,
-                    "count": count,
-                } for count in [25]]
-            ],
-            "randoms": [
-                [{
-                    **base_random,
-                    "count": count,
-                } for count in [25]]
-            ],
-            "fundamentalists": [
-                [{
-                    **base_fundamentalist,
-                    "count": count,
-                } for count in [16]]
-            ],
-            "probe_agents": [
-                [{
-                    **base_probe_agent,
-                    "count": count,
-                } for count in [0]]
-            ],
-        },
-        # "hpe": {
+        # "no_nn": {
         #     "events": [
         #         [{
         #             **base_event,
@@ -179,7 +135,7 @@ def generate_configs(**kwargs) -> Dict:
         #         [{
         #             **base_market_maker,
         #             "count": count,
-        #         } for count in [0]]
+        #         } for count in [5]]
         #     ],
         #     "nn_market_makers": [
         #         [{
@@ -191,27 +147,71 @@ def generate_configs(**kwargs) -> Dict:
         #         [{
         #             **base_chartist,
         #             "count": count,
-        #         } for count in [5]]
+        #         } for count in [25]]
         #     ],
         #     "randoms": [
         #         [{
         #             **base_random,
         #             "count": count,
-        #         } for count in [15]]
+        #         } for count in [25]]
         #     ],
         #     "fundamentalists": [
         #         [{
         #             **base_fundamentalist,
         #             "count": count,
-        #         } for count in [6]]
+        #         } for count in [16]]
         #     ],
         #     "probe_agents": [
         #         [{
         #             **base_probe_agent,
         #             "count": count,
-        #         } for count in [1]]
+        #         } for count in [0]]
         #     ],
         # },
+        "hpe": {
+            "events": [
+                [{
+                    **base_event,
+                    "price_change": price_change,
+                } for price_change in [0]],
+            ],
+            "base_market_makers": [
+                [{
+                    **base_market_maker,
+                    "count": count,
+                } for count in [0]]
+            ],
+            "nn_market_makers": [
+                [{
+                    **nn_market_maker,
+                    "count": count,
+                } for count in [5]]
+            ],
+            "chartists": [
+                [{
+                    **base_chartist,
+                    "count": count,
+                } for count in [5]]
+            ],
+            "randoms": [
+                [{
+                    **base_random,
+                    "count": count,
+                } for count in [15]]
+            ],
+            "fundamentalists": [
+                [{
+                    **base_fundamentalist,
+                    "count": count,
+                } for count in [6]]
+            ],
+            "probe_agents": [
+                [{
+                    **base_probe_agent,
+                    "count": count,
+                } for count in [1]]
+            ],
+        },
     }
     generator = ConfigGenerator(scenarios=scenarios)
     return generator.generate(**kwargs)

@@ -706,5 +706,4 @@ class ProbeAgent(Trader):
         if self.call_count <= 500:
             # For each market, place a sell order
             for i in range(len(self.markets)):
-                logging.Logger.info("I AM PROBE")
                 self._sell_market(self.order_size, i)
