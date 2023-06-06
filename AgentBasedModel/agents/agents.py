@@ -621,7 +621,9 @@ class MarketMaker(Trader):
     spread between bid and ask prices, and maintain its assets to cash ratio in balance.
     """
 
-    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, softlimits: List[int] = None, stub_quotes_enabled: bool = False, stub_size: int = 1, nn_enabled: bool = True):
+    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None,
+                 softlimits: List[int] = None, stub_quotes_enabled: bool = False, stub_size: int = 1,
+                 delay_enabled: bool = False, delay: int = 1):
         super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
         if softlimits is None:
             self.softlimits = [100] * len(self.markets)
@@ -636,11 +638,27 @@ class MarketMaker(Trader):
         self.stub_quotes_enabled = stub_quotes_enabled
         self.stub_size = stub_size
         self.nn_enabled = nn_enabled
+        self.delay_enabled = delay_enabled
+        self.delay = delay
+        self.orders_queue = [[] for _ in range(delay)]
 
     def apply_behaviour(self, action) -> None:
         if not self.nn_enabled:
             return
         self.offset_coeff = action / 100
+
+    def process_delayed_orders(self):
+        # Process orders that are self.delay steps old
+        if self.delay_enabled:
+            for order in self.orders_queue[0]:
+                if order['type'] == 'buy':
+                    self._buy_limit(order['volume'], order['price'], order['market'])
+                elif order['type'] == 'sell':
+                    self._sell_limit(order['volume'], order['price'], order['market'])
+
+            # Remove processed orders and add a new list for next time step
+            self.orders_queue.pop(0)
+            self.orders_queue.append([])
 
     def call(self):
         logging.Logger.info(f"Market Maker |{self.offset_coeff}| {self.id} PnL {self.cash - self.prev_cash}. Cash: {self.cash} | Assets: {self.assets}")
@@ -681,10 +699,29 @@ class MarketMaker(Trader):
                     self._buy_limit(self.stub_size, stub_bid_price, i)
                     self._sell_limit(self.stub_size, stub_ask_price, i)
 
-                self._buy_limit(bid_volume, bid_price, i)
-                self._sell_limit(ask_volume, ask_price, i)
+                if self.delay_enabled:
+                        bid_order = {
+                            'type': 'buy',
+                            'volume': bid_volume,
+                            'price': bid_price,
+                            'market': i
+                        }
+                        ask_order = {
+                            'type': 'sell',
+                            'volume': ask_volume,
+                            'price': ask_price,
+                            'market': i
+                        }
+
+                        self.orders_queue[-1].extend([bid_order, ask_order])
+
+                if not self.delay_enabled:
+                    self._buy_limit(bid_volume, bid_price, i)
+                    self._sell_limit(ask_volume, ask_price, i)
 
             self.panic = False
+            if self.delay_enabled:
+                self.process_delayed_orders()
         self.prev_cash = self.cash
 
 
