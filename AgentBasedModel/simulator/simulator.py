@@ -87,7 +87,10 @@ class Simulator:
             for trader in self.traders:
                 if isinstance(trader, MarketMaker):
                     reward = trader.last_pnl
-                    if trader.cash < 0: reward *= 0.5
+                    if trader.cash < 0 and reward > 0:
+                        reward *= 0.5
+                    elif trader.cash < 0 and reward < 0:
+                        reward *= 2
                     state, action, = acts[trader.id][0], acts[trader.id][1]
                     next_state = self._get_state(trader)
                     agent.update_replay_memory(state, action, reward, next_state, done)

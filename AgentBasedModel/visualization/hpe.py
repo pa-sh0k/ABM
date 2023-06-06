@@ -37,7 +37,7 @@ def plot_hpe_price(info: SimulatorInfo, spread=False, rolling: int = 1, figsize=
     plt.title(f'Last traded price, {f"Delay={delay}" if delay_enabled else "with compliance orders"}')
     plt.xlabel('Iterations')
     plt.ylabel('Price')
-    plt.xticks([i for i in range(1, 1000, 39)])
+    plt.xticks([i for i in range(1, 1000, 100)])
 
     plt.plot(range(rolling - 1, len(info.prices)), math.rolling(info.prices, rolling), color='black')
 

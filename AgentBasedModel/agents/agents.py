@@ -84,8 +84,10 @@ class ExchangeAgent:
     #     self.order_book['ask'] = OrderList.from_list([])
 
     def training_data(self) -> list or None:
-        return [self.order_book['bid'].first.price, self.order_book['ask'].first.price,
-                self.order_book['bid'].first.qty, self.order_book['ask'].first.qty]
+        bid = [0, 0] if self.order_book['bid'].first is None else [self.order_book['bid'].first.price, self.order_book['ask'].first.price]
+        ask = [0, 0] if self.order_book['bid'].first is None else [self.order_book['bid'].first.qty, self.order_book['ask'].first.qty]
+        return bid + ask
+
 
     def spread(self) -> dict or None:
         """
@@ -635,11 +637,14 @@ class MarketMaker(Trader):
         self.prev_cash = cash
         self.stub_quotes_enabled = stub_quotes_enabled
         self.stub_size = stub_size
+        self.nn_enabled = nn_enabled
         self.delay_enabled = delay_enabled
         self.delay = delay
         self.orders_queue = [[] for _ in range(delay)]
 
     def apply_behaviour(self, action) -> None:
+        if not self.nn_enabled:
+            return
         self.offset_coeff = action / 100
 
     def process_delayed_orders(self):
@@ -689,14 +694,10 @@ class MarketMaker(Trader):
                 ask_volume = max(0, (self.assets[i] - 1 - self.lls[i]))
 
                 if self.stub_quotes_enabled:
-                    market_price = (spread['ask'] - spread['bid']) / 2
-                    stub_bid_price = market_price * 0.1
-                    stub_ask_price = market_price * 10
+                    stub_bid_price = 50
+                    stub_ask_price = 200
                     self._buy_limit(self.stub_size, stub_bid_price, i)
                     self._sell_limit(self.stub_size, stub_ask_price, i)
-
-                    bid_volume = max(0, bid_volume-self.stub_size)
-                    ask_volume = max(0, ask_volume-self.stub_size)
 
                 if self.delay_enabled:
                         bid_order = {
@@ -729,7 +730,7 @@ class ProbeAgent(Trader):
     ProbeAgent issues sell orders of a specific size, without managing cash or assets.
     """
 
-    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, order_size: int = 19):
+    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, order_size: int = 13):
         super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
         self.order_size = order_size
         self.type = 'Probe Agent'
