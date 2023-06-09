@@ -173,7 +173,8 @@ class Trader:
     """
     id = 0
 
-    def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int]):
+    def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int],
+                 delay_enabled: bool = False, delay: int = 1):
         """
         Trader that is activated on call to perform action
 
@@ -191,10 +192,17 @@ class Trader:
 
         self.cash = cash
         self.assets = assets
+        self.delay_enabled = delay_enabled
+        self.delay = delay
+        self.orders_queue = [[] for _ in range(delay)] if delay_enabled else None
+
         logging.Logger.info(f"{self.name} {len(assets)}")
 
     def __str__(self) -> str:
         return f'{self.name} ({self.type})'
+
+    def call(self):
+        pass
 
     def equity(self) -> float:
         """
@@ -261,14 +269,40 @@ class Trader:
         self.markets[order.market_id].cancel_order(order)
         self.orders.remove(order)
 
+    def _post_orders(self, orders: list):
+        self.orders_queue[-1].extend(orders)
+
+    def process_delayed_orders(self):
+        # Process orders that are self.delay steps old
+        if self.delay_enabled and len(self.orders_queue) > 0:
+            for order in self.orders_queue[0]:
+                if order['type'] == 'buy':
+                    if 'price' in order:
+                        self._buy_limit(order['volume'], order['price'], order['market'])
+                    else:
+                        self._buy_market(order['volume'], order['market'] if 'market' in order.keys() else None)
+                elif order['type'] == 'sell':
+                    if 'price' in order:
+                        self._sell_limit(order['volume'], order['price'], order['market'])
+                    else:
+                        self._sell_market(order['volume'], order['market'] if 'market' in order.keys() else None)
+                elif order['type'] == 'cancel':
+                    self._cancel_order(order['order'])
+
+            # Remove processed orders and add a new list for next time step
+            self.orders_queue.pop(0)
+            self.orders_queue.append([])
+
 
 class Random(Trader):
     """
     Random creates noisy orders to recreate trading in real environment.
     """
 
-    def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int]):
-        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
+    def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int], delay_enabled: bool = False,
+                 delay: int = 1):
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets),
+                         delay_enabled=delay_enabled, delay=delay)
         self.type = 'Random'
 
     @staticmethod
@@ -326,25 +360,60 @@ class Random(Trader):
         # Market order
         if random_state > .85:
             quantity = self.draw_quantity()
+            order = {
+                "type": None,
+                "volume": quantity
+            }
             if order_type == 'bid':
-                self._buy_market(quantity)
+                if self.delay_enabled:
+                    order["type"] = 'buy'
+                    self._post_orders([order])
+                else:
+                    self._buy_market(quantity)
             elif order_type == 'ask':
-                self._sell_market(quantity)
+                if self.delay_enabled:
+                    order["type"] = 'sell'
+                    self._post_orders([order])
+                else:
+                    self._sell_market(quantity)
 
         # Limit order
         elif random_state > .5:
             price = self.draw_price(order_type, spread)
             quantity = self.draw_quantity()
+            order = {
+                'type': None,
+                'volume': quantity,
+                'price': price,
+                'market': 0
+            }
             if order_type == 'bid':
-                self._buy_limit(quantity, price, 0)
+                if self.delay_enabled:
+                    order["type"] = 'buy'
+                    self._post_orders([order])
+                else:
+                    self._buy_limit(quantity, price, 0)
             elif order_type == 'ask':
-                self._sell_limit(quantity, price, 0)
+                if self.delay_enabled:
+                    order["type"] = 'sell'
+                    self._post_orders([order])
+                else:
+                    self._sell_limit(quantity, price, 0)
 
         # Cancellation order
         elif random_state < .35:
             if self.orders:
                 order_n = random.randint(0, len(self.orders) - 1)
-                self._cancel_order(self.orders[order_n])
+                if self.delay_enabled:
+                    self._post_orders([{
+                        "type": 'cancel',
+                        "order": self.orders[order_n]
+                    }])
+                else:
+                    self._cancel_order(self.orders[order_n])
+
+        # Process orders that are old enough to be executed
+        self.process_delayed_orders()
 
 
 class Fundamentalist(Trader):
@@ -352,14 +421,16 @@ class Fundamentalist(Trader):
     Fundamentalist evaluate stock value using Constant Dividend Model. Then places orders accordingly
     """
 
-    def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int], access: int = 1):
+    def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int], access: int = 1,
+                 delay_enabled: bool = False, delay: int = 1):
         """
         :param markets: exchange agent link
         :param cash: number of cash
         :param assets: number of assets
         :param access: number of future dividends informed
         """
-        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets),
+                         delay_enabled=delay_enabled, delay=delay)
         self.type = 'Fundamentalist'
         self.access = access
 
@@ -416,26 +487,78 @@ class Fundamentalist(Trader):
 
             if pf >= ask_t:
                 if random_state > .5:
-                    self._buy_market(qty)
+                    if self.delay_enabled:
+                        self._post_orders([{
+                            'type': 'buy',
+                            'volume': qty
+                        }])
+                    else:
+                        self._buy_market(qty)
                 else:
-                    self._sell_limit(qty, (pf + Random.draw_delta()) * (1 + t_cost), 0)
+                    if self.delay_enabled:
+                        self._post_orders([{
+                            'type': 'sell',
+                            'volume': qty,
+                            'price': (pf + Random.draw_delta()) * (1 + t_cost),
+                            'market': 0
+                        }])
+                    else:
+                        self._sell_limit(qty, (pf + Random.draw_delta()) * (1 + t_cost), 0)
 
             elif pf <= bid_t:
                 if random_state > .5:
-                    self._sell_market(qty)
+                    if self.delay_enabled:
+                        self._post_orders([{
+                            'type': 'sell',
+                            'volume': qty
+                        }])
+                    else:
+                        self._sell_market(qty)
                 else:
-                    self._buy_limit(qty, (pf - Random.draw_delta()) * (1 - t_cost), 0)
+                    if self.delay_enabled:
+                        self._post_orders([{
+                            'type': 'buy',
+                            'volume': qty,
+                            'price': (pf - Random.draw_delta()) * (1 - t_cost),
+                            'market': 0
+                        }])
+                    else:
+                        self._buy_limit(qty, (pf - Random.draw_delta()) * (1 - t_cost), 0)
 
             elif ask_t > pf > bid_t:
                 if random_state > .5:
-                    self._buy_limit(qty, (pf - Random.draw_delta()) * (1 - t_cost), 0)
+                    if self.delay_enabled:
+                        self._post_orders([{
+                            'type': 'buy',
+                            'volume': qty,
+                            'price': (pf - Random.draw_delta()) * (1 - t_cost),
+                            'market': 0
+                        }])
+                    else:
+                        self._buy_limit(qty, (pf - Random.draw_delta()) * (1 - t_cost), 0)
                 else:
-                    self._sell_limit(qty, (pf + Random.draw_delta()) * (1 + t_cost), 0)
+                    if self.delay_enabled:
+                        self._post_orders([{
+                            'type': 'sell',
+                            'volume': qty,
+                            'price': (pf + Random.draw_delta()) * (1 + t_cost),
+                            'market': 0
+                        }])
+                    else:
+                        self._sell_limit(qty, (pf + Random.draw_delta()) * (1 + t_cost), 0)
 
         # Cancel order
         else:
             if self.orders:
-                self._cancel_order(self.orders[0])
+                if self.delay_enabled:
+                    self._post_orders([{
+                        'type': 'cancel',
+                        'order': self.orders[0]
+                    }])
+                else:
+                    self._cancel_order(self.orders[0])
+
+        self.process_delayed_orders()
 
 
 class Chartist(Trader):
@@ -446,13 +569,15 @@ class Chartist(Trader):
     propagation among other chartists, current price changes
     """
 
-    def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int]):
+    def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int], delay_enabled: bool = False,
+                 delay: int = 1):
         """
         :param markets: exchange agent link
         :param cash: number of cash
         :param assets: number of assets
         """
-        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets),
+                         delay_enabled=delay_enabled, delay=delay)
         self.type = 'Chartist'
         self.sentiment = 'Optimistic' if random.random() > .5 else 'Pessimistic'
 
@@ -468,14 +593,34 @@ class Chartist(Trader):
             spread = self.markets[mn_index].spread()
             # Market order
             if random_state > .85:
-                self._buy_market(Random.draw_quantity())
+                if self.delay_enabled:
+                    self._post_orders([{
+                        'type': 'buy',
+                        'volume': Random.draw_quantity()
+                    }])
+                else:
+                    self._buy_market(Random.draw_quantity())
             # Limit order
             elif random_state > .5:
-                self._buy_limit(Random.draw_quantity(), Random.draw_price('bid', spread) * (1 - t_cost), mn_index)
+                if self.delay_enabled:
+                    self._post_orders([{
+                        'type': 'buy',
+                        'volume': Random.draw_quantity(),
+                        'price': Random.draw_price('bid', spread) * (1 - t_cost),
+                        'market': mn_index
+                    }])
+                else:
+                    self._buy_limit(Random.draw_quantity(), Random.draw_price('bid', spread) * (1 - t_cost), mn_index)
             # Cancel order
             elif random_state < .35:
                 if self.orders:
-                    self._cancel_order(self.orders[-1])
+                    if self.delay_enabled:
+                        self._post_orders([{
+                            'type': 'cancel',
+                            'order': self.orders[-1]
+                        }])
+                    else:
+                        self._cancel_order(self.orders[-1])
         elif self.sentiment == 'Pessimistic':
             mx_index = 0
             for _ in range(len(self.markets)):
@@ -485,14 +630,36 @@ class Chartist(Trader):
             spread = self.markets[mx_index].spread()
             # Market order
             if random_state > .85:
-                self._sell_market(Random.draw_quantity())
+                if self.delay_enabled:
+                    self._post_orders([{
+                        'type': 'sell',
+                        'volume': Random.draw_quantity()
+                    }])
+                else:
+                    self._sell_market(Random.draw_quantity())
             # Limit order
             elif random_state > .5:
-                self._sell_limit(Random.draw_quantity(), Random.draw_price('ask', spread) * (1 + t_cost), mx_index)
+                if self.delay_enabled:
+                    self._post_orders([{
+                        'type': 'sell',
+                        'volume': Random.draw_quantity(),
+                        'price': Random.draw_price('ask', spread) * (1 + t_cost),
+                        'market': mx_index
+                    }])
+                else:
+                    self._sell_limit(Random.draw_quantity(), Random.draw_price('ask', spread) * (1 + t_cost), mx_index)
             # Cancel order
             elif random_state < .35:
                 if self.orders:
-                    self._cancel_order(self.orders[-1])
+                    if self.delay_enabled:
+                        self._post_orders([{
+                            'type': 'cancel',
+                            'order': self.orders[-1]
+                        }])
+                    else:
+                        self._cancel_order(self.orders[-1])
+
+        self.process_delayed_orders()
 
     def change_sentiment(self, info, a1=1, a2=1, v1=.1):
         """
@@ -540,14 +707,16 @@ class Universalist(Fundamentalist, Chartist):
     Universalist mixes Fundamentalist, Chartist trading strategies allowing to change one strategy to another
     """
 
-    def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int], access: int = 1):
+    def __init__(self, markets: List[ExchangeAgent], cash: float or int, assets: List[int], access: int = 1,
+                 delay_enabled: bool = False, delay: int = 1):
         """
         :param markets: exchange agent link
         :param cash: number of cash
         :param assets: number of assets
         :param access: number of future dividends informed
         """
-        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets),
+                         delay_enabled=delay_enabled, delay=delay)
         self.type = 'Chartist' if random.random() > .5 else 'Fundamentalist'  # randomly decide type
         self.sentiment = 'Optimistic' if random.random() > .5 else 'Pessimistic'  # sentiment about trend (Chartist)
         self.access = access  # next n dividend payments known (Fundamentalist)
@@ -623,8 +792,9 @@ class MarketMaker(Trader):
 
     def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None,
                  softlimits: List[int] = None, stub_quotes_enabled: bool = False, stub_size: int = 1,
-                 delay_enabled: bool = False, delay: int = 1):
-        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
+                 nn_enabled: bool = False, delay_enabled: bool = False, delay: int = 1):
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets),
+                         delay_enabled=delay_enabled, delay=delay)
         if softlimits is None:
             self.softlimits = [100] * len(self.markets)
         self.softlimits = softlimits
@@ -640,25 +810,10 @@ class MarketMaker(Trader):
         self.nn_enabled = nn_enabled
         self.delay_enabled = delay_enabled
         self.delay = delay
-        self.orders_queue = [[] for _ in range(delay)]
+        # self.orders_queue = [[] for _ in range(delay)]
 
     def apply_behaviour(self, action) -> None:
-        if not self.nn_enabled:
-            return
         self.offset_coeff = action / 100
-
-    def process_delayed_orders(self):
-        # Process orders that are self.delay steps old
-        if self.delay_enabled:
-            for order in self.orders_queue[0]:
-                if order['type'] == 'buy':
-                    self._buy_limit(order['volume'], order['price'], order['market'])
-                elif order['type'] == 'sell':
-                    self._sell_limit(order['volume'], order['price'], order['market'])
-
-            # Remove processed orders and add a new list for next time step
-            self.orders_queue.pop(0)
-            self.orders_queue.append([])
 
     def call(self):
         logging.Logger.info(f"Market Maker |{self.offset_coeff}| {self.id} PnL {self.cash - self.prev_cash}. Cash: {self.cash} | Assets: {self.assets}")
@@ -694,10 +849,14 @@ class MarketMaker(Trader):
                 ask_volume = max(0, (self.assets[i] - 1 - self.lls[i]))
 
                 if self.stub_quotes_enabled:
-                    stub_bid_price = 50
-                    stub_ask_price = 200
+                    market_price = (spread['ask'] - spread['bid']) / 2
+                    stub_bid_price = market_price * 0.1
+                    stub_ask_price = market_price * 10
                     self._buy_limit(self.stub_size, stub_bid_price, i)
                     self._sell_limit(self.stub_size, stub_ask_price, i)
+
+                    bid_volume = max(0, bid_volume-self.stub_size)
+                    ask_volume = max(0, ask_volume-self.stub_size)
 
                 if self.delay_enabled:
                         bid_order = {
@@ -713,15 +872,14 @@ class MarketMaker(Trader):
                             'market': i
                         }
 
-                        self.orders_queue[-1].extend([bid_order, ask_order])
+                        self._post_orders([bid_order, ask_order])
 
                 if not self.delay_enabled:
                     self._buy_limit(bid_volume, bid_price, i)
                     self._sell_limit(ask_volume, ask_price, i)
 
             self.panic = False
-            if self.delay_enabled:
-                self.process_delayed_orders()
+            self.process_delayed_orders()
         self.prev_cash = self.cash
 
 
@@ -730,8 +888,10 @@ class ProbeAgent(Trader):
     ProbeAgent issues sell orders of a specific size, without managing cash or assets.
     """
 
-    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, order_size: int = 13):
-        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets))
+    def __init__(self, markets: List[ExchangeAgent], cash: float, assets: List[int] = None, order_size: int = 13,
+                 delay_enabled: bool = False, delay: int = 1):
+        super().__init__(markets, cash, assets.copy() if assets is not None else [0] * len(markets),
+                         delay_enabled=delay_enabled, delay=delay)
         self.order_size = order_size
         self.type = 'Probe Agent'
         self.call_count = 0
@@ -744,4 +904,14 @@ class ProbeAgent(Trader):
             # For each market, place a sell order
             for i in range(len(self.markets)):
                 logging.Logger.info("I AM PROBE")
-                self._sell_market(self.order_size, i)
+                if self.delay_enabled:
+                    order = {
+                        'type': 'sell',
+                        'volume': self.order_size,
+                        'market': i
+                    }
+                    self._post_orders([order])
+                else:
+                    self._sell_market(self.order_size, i)
+
+            self.process_delayed_orders()

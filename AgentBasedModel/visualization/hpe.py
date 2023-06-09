@@ -11,7 +11,7 @@ Visualisation of Hot Potato Effect (HPE)
 """
 
 
-def plot_inventories(info: SimulatorInfo, figsize=(25, 6), save_path: str = None, delay_enabled: bool = False,
+def plot_inventories(info: SimulatorInfo, figsize=(20, 6), save_path: str = None, delay_enabled: bool = False,
                      delay: int = 1):
     plt.figure(figsize=figsize)
     plt.title(f'HTF inventories, {f"Delay={delay}" if delay_enabled else "with compliance orders"}')
